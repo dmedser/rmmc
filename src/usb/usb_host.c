@@ -83,8 +83,8 @@ void host_process(void) {
 		}
 		break;
 	case HOST_ST_CONN: {
-			sys_tim_LSI();
-			delay_ticks(4000); /* 100 ms */
+			//sys_tim_LSI();
+			//delay_ticks(4000); /* 100 ms */
 			bus_rst();
 			token = TOKEN_TYPE_OUT_DATA0;
 			USB_SetHTXSE(USB_HTXSE_SOFEN_Auto);		
@@ -164,8 +164,8 @@ void bus_rst(void) {
 	USB_SetHTXLC(USB_HTXLC_TXLC_DM_Reset); 
 	USB_SetHTXLC(USB_HTXLC_TXLC_DP_Reset); 
 	USB_SetHTXLC(USB_HTXLC_DC_Direct); 
-  sys_tim_LSI();
-	delay_ticks(1200); /* 30 ms */
+ // sys_tim_LSI();
+	//delay_ticks(1200); /* 30 ms */
 	USB_SetHTXLC(USB_HTXLC_DC_Normal);
 }
 

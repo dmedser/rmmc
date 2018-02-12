@@ -12,6 +12,9 @@
 extern uint32_t target_t;
 
 /* Низкоуровневые фунции */
+/* Вывод ШИМ сигнала */
+void port_e_init(void);
+
 /* Таймер генерации ШИМ сигнала управления */
 void 		tim_2_init(void);
 

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "MDR32Fx.h"
 
 /* Адреса чтения и записи во флеш */
 extern uint32_t w_addr;
@@ -15,31 +16,38 @@ extern uint32_t r_addr;
 #define NUMBER_OF_SECTORS						8
 
 /* Выводы SPI 1 и 2 */
+/* PORT F */
 #define MOSI1			PORT_Pin_0
 #define SCK1			PORT_Pin_1
 #define nCS1			PORT_Pin_2
 #define MISO1			PORT_Pin_3
-
-#define MISO2			PORT_Pin_3
-#define nCS2			PORT_Pin_4
+/* PORT D */
+#define MISO2			PORT_Pin_2
+#define nCS2			PORT_Pin_3
 #define SCK2			PORT_Pin_5
 #define MOSI2			PORT_Pin_6
 
 /* Инициализация SPI для связи с K1636РР4У */
 void 			spi_init(void);
 
-/* Цикл передачи данных SPI 1*/
+void 			ncs1_l(void);
+void 			ncs1_h(void);
+
+/* Цикл обмена SPI 1*/
 uint8_t 	spi1_tsf(uint8_t byte);
 
-/* Отправка данных в цикле передачи */
-void 			spi1_wr_byte(uint8_t data);
+/* Отправка данных в цикле обмена */
+void      spi1_wr_byte(uint8_t data);
 void 			spi1_wr_buf(uint8_t *buf, uint8_t len);
 
-/* Прием байта в цикле передачи */
+/* Прием байта в цикле обмена */
 uint8_t 	spi1_rd_byte(void);
 
+void 			ncs2_l(void);
+void 			ncs2_h(void);
+
 uint8_t 	spi2_tsf(uint8_t byte);
-void 			spi2_wr_byte(uint8_t byte);
+void      spi2_wr_byte(uint8_t data);
 void 			spi2_wr_buf(uint8_t *buf, uint8_t len);
 uint8_t 	spi2_rd_byte(void);
 
@@ -66,6 +74,7 @@ uint8_t 	spi2_rd_byte(void);
 
 
 /* Низкоуровневые функции записи/чтения данных во/из флеш по SPI */
+void			f_wr_en(uint8_t prom_code, FunctionalState st);
 void 			f_wr_byte(uint32_t addr, uint8_t data, uint8_t prom_code);
 void 			f_wr_buf(uint8_t *buf, uint8_t len, uint32_t addr, uint8_t prom_code);
 uint8_t 	f_rd_byte(uint32_t addr, uint8_t prom_code);

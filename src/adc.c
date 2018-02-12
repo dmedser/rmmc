@@ -91,13 +91,14 @@ void tim_3_ch_3_init(void) {
 	/* Настройка канала */
 	/* Без предделения */
 	MDR_TIMER3->CH3_CNTRL &= ~(0x3 << TIMER_CH_CNTRL_CHPSC_Pos); 
-	/* Формат выработки сигнала REF - переключение REF если CNT == CCR или CNT == CRR1 */
-	MDR_TIMER3->CH3_CNTRL |= (TIMER_CH_CNTRL_OCCM_SW_REF_CNT_CCR_OR_CNT_CCR1 << TIMER_CH_CNTRL_OCCM_Pos);
 	/* Режим работы - ШИМ */
 	MDR_TIMER3->CH3_CNTRL &= ~(1 << TIMER_CH_CNTRL_CAP_NPWM_Pos);
-	/* Прямой канал всегда работает на выход, на выход подается сигнал REF */
+	/* Формат выработки сигнала REF - переключение REF если CNT == CCR или CNT == CRR1 */
+	MDR_TIMER3->CH3_CNTRL |= (TIMER_CH_CNTRL_OCCM_SW_REF_CNT_CCR_OR_CNT_CCR1 << TIMER_CH_CNTRL_OCCM_Pos);
+	/* Прямой канал всегда работает на выход */
 	MDR_TIMER3->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELOE_OUT_EN << TIMER_CH_CNTRL1_SELOE_Pos);
-	MDR_TIMER3->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELO_OUT_REF << TIMER_CH_CNTRL1_SELO_Pos);
+	/* На выход подается REF */
+ 	MDR_TIMER3->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELO_OUT_REF << TIMER_CH_CNTRL1_SELO_Pos);
 	/* Разрешение CRR1 */
 	MDR_TIMER3->CH3_CNTRL2 |= TIMER_CH_CNTRL2_CCR1_EN;
 }
@@ -218,24 +219,6 @@ void adc_sys_clb(void) {
 }
 
 
-uint32_t adc_get_ch1(void) {
-	uint32_t adc_cr = adc_rd_cr();
-	adc_cr &= ~CH_Msk;
-	adc_wr_cr(adc_cr);
-	while(MDR_PORTB->RXTX & nDRDY); /* Пока #DRDY = 1 */ 
-	return adc_rd_dr();
-}
-
-
-uint32_t adc_get_ch2(void) {
-	uint32_t adc_cr = adc_rd_cr();
-	adc_cr |= CH_Msk;
-	adc_wr_cr(adc_cr);
-	while(MDR_PORTB->RXTX & nDRDY); /* Пока #DRDY = 1 */ 
-	return adc_rd_dr();
-}
-
-
 /* Интерфейс */
 void adc_init(void) {
 	port_b_init();
@@ -256,19 +239,42 @@ void adc_init(void) {
 	set_lvl(nRFS, HIGH);
 	
 	ADC_CTRL_REG_StructInit(cr);
-	//adc_sys_clb();
-	/* Калибровка 2-го канала */
-	//cr->CH = CH_2;
-	//ADC_CTRL_REG_StructInit(cr);
-	//adc_sys_clb();
+//	adc_sys_clb();
+//	/* Калибровка 2-го канала */
+//	cr->CH = CH_2;
+//	ADC_CTRL_REG_StructInit(cr);
+//	adc_sys_clb();
+//	ref_off();
 }
 
 
-uint32_t adc_t1_24(void) {
-	return adc_get_ch1();
+//inline void ref_on(void) {
+//	/* На выход подается REF */
+//	MDR_TIMER3->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELO_OUT_REF << TIMER_CH_CNTRL1_SELO_Pos);
+//}
+
+
+//inline void ref_off(void) {
+//	/* На выход подается 0 */
+//	MDR_TIMER3->CH3_CNTRL1 &= ~TIMER_CH_CNTRL1_SELO_Msk;
+//}
+
+
+uint32_t adc_t1(void) {
+	uint32_t adc_cr = adc_rd_cr();
+	adc_cr &= ~CH_Msk; 							/* Канал 1 */
+	adc_wr_cr(adc_cr);
+	while(MDR_PORTB->RXTX & nDRDY); /* Пока #DRDY = 1 */ 
+	uint32_t res = adc_rd_dr();
+	return res;
 }
 
 
-uint32_t adc_t2_24(void) {
-	return adc_get_ch2();
+uint32_t adc_t2(void) {
+	uint32_t adc_cr = adc_rd_cr();
+	adc_cr |= CH_Msk;								/* Канал 2 */
+	adc_wr_cr(adc_cr);
+	while(MDR_PORTB->RXTX & nDRDY); /* Пока #DRDY = 1 */ 
+	uint32_t res = adc_rd_dr();
+	return res;
 }

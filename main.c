@@ -8,13 +8,17 @@
 
 int main(void) { 
 	cpu_init();
-	adc_init();
+	//adc_init();
+	sys_tim_init();
+	carrier_init();
+	//f_init(MAIN);
+	carrier_cmd(ENABLE);
 	
 	while(1);
 	
-	
+	//cpu_init();
+	//adc_init();
 	//f_init();
-	//
 	//carrier_init();
 	//uart_init();
 	//usb_host_init();

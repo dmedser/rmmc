@@ -1,3 +1,4 @@
+#include "util.h"
 #include "MDR32Fx.h"                    // Device header
 #include "MDR32F9Qx_rst_clk.h"          // Milandr::Drivers:RST_CLK
 #include <stdbool.h>
@@ -37,39 +38,26 @@ void cpu_init(void) {
 
 
 void sys_tim_init(void) {
-  NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
-  SysTick->VAL  = 0UL;                                              /* Load the SysTick Counter Value */
-	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+	/* 1 мс */
+  SysTick->LOAD = (uint32_t)(80000 - 1UL);
+	SysTick->VAL  = 0UL;
+	NVIC_SetPriority (SysTick_IRQn, (1<<__NVIC_PRIO_BITS) - 1);  
+  SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk;
+	NVIC_ClearPendingIRQ(SysTick_IRQn);
 }
 
+uint32_t msec = 0;
 
-void sys_tim_LSI(void) {
-	sys_tim_init();
-  SysTick->CTRL &= ~(1 << SysTick_CTRL_CLKSOURCE_Pos); /* LSI */
-}
-
-
-void sys_tim_HCLK(void) {
-	sys_tim_init();
-  SysTick->CTRL |= (1 << SysTick_CTRL_CLKSOURCE_Pos); /* HCLK */
-}
-
-
-void delay_ticks(uint32_t ticks) {
-	//SysTick->LOAD  = (uint32_t)(ticks - 1UL);        /* set reload register */
+void delay_ms(uint32_t ms) {
+	msec = ms;
 	SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
-	while(!delay_cmpl);
-	delay_cmpl = false;
-}
-
-
-void rst_sys_tim(void) {
+	while(msec > 0);
 	SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-//	NVIC_ClearPendingIRQ(SysTick_IRQn);
+	SysTick->VAL  = 0UL;
+	NVIC_ClearPendingIRQ(SysTick_IRQn);
 }
-
 
 void SysTick_Handler(void) {
-	SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-	delay_cmpl = true;
+	msec--;
 }
+

@@ -98,7 +98,11 @@ void port_b_init(void);
 /* Генерация тактового сигнала частотой 250 кГц
  * для программного интерфейса связи с АЦП 
  */
-void tim_3_ch_3_init(void);									  
+void tim_3_ch_3_init(void);									
+
+///*  */
+//void ref_on(void);
+//void ref_off(void);
 
 /* Задание направления пина порта ввода/вывода */
 void set_dir(uint16_t pin, DIR_TypeDef dir);	
@@ -127,9 +131,6 @@ void 		 ADC_CTRL_REG_StructInit(ADC_CTRL_REG_TypeDef *cr);
 /* Системная калибровка (нуля шкалы и полной шкалы) обоих каналов АЦП */
 void 		 adc_sys_clb(void);
 
-/* Чтение 32-разрядного выходного значения АЦП каналов 1 и 2 */
-uint32_t adc_get_ch1(void);
-uint32_t adc_get_ch2(void);
 
 /* Интерфейс */
 
@@ -137,5 +138,5 @@ uint32_t adc_get_ch2(void);
 void 		 adc_init(void);
 
 /* Чтение 24-рязрядного выходного значения АЦП каналов 1 и 2 */
-uint32_t adc_t1_24(void);
-uint32_t adc_t2_24(void);
+uint32_t adc_t1(void);
+uint32_t adc_t2(void);

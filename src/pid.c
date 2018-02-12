@@ -29,96 +29,97 @@ float I_MIN;
 /* Статус ПИД регулятора (включен/выключен) */
 FunctionalState PID_st = DISABLE;
 
-/* 2-й таймер 3-й канал: ШИМ 10 КГц, настраиваемый коэффициент заполнения */
-void tim_2_init(void) {	
-	/* Разрешение тактирования TIM2 */
-	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_TIMER2;
-	
-	TIMER_DeInit(MDR_TIMER2);
-	
-	/* Установка TIM_CLOCK. Тактовая частота TIM2 = HCLK = 72 МГц, разрешение тактирования */
-	TIMER_BRGInit(MDR_TIMER2, TIMER_HCLKdiv1); 
-	
-	/* Настройка счетчика */
-	TIMER_CntInitTypeDef t2_cnt;
-	t2_cnt.TIMER_Prescaler 				= 0;	
-	t2_cnt.TIMER_CounterMode 			= TIMER_CntMode_ClkFixedDir;
-	t2_cnt.TIMER_CounterDirection = TIMER_CntDir_Up;
-	TIMER_CntInit(MDR_TIMER2, &t2_cnt);
-	
-	/* Основание счета, на частоте 72 МГц переполнение через 100 мкс (10 КГц) */
-  MDR_TIMER2->ARR = 7200 - 1; 
-	
-	/* Настройка 3-го канала на ШИМ */
-	TIMER_ChnInitTypeDef t2_ch3;
-	t2_ch3.TIMER_CH_Number     		 = TIMER_CHANNEL3;
-	t2_ch3.TIMER_CH_Mode 	     		 = TIMER_CH_MODE_PWM;
-	t2_ch3.TIMER_CH_Prescaler  		 = TIMER_CH_Prescaler_None;
-	t2_ch3.TIMER_CH_CCR_UpdateMode = TIMER_CH_CCR_Update_On_CNT_eq_0; /* Обновление CRR при CNT == 0 */
-	t2_ch3.TIMER_CH_CCR1_Ena   		 = ENABLE;
-	TIMER_ChnInit(MDR_TIMER2, &t2_ch3);
-	
-	/* Настройка выходного ШИМ сигнала 3-го канала */
-	TIMER_ChnOutInitTypeDef t2_ch3_pwm;
-	t2_ch3_pwm.TIMER_CH_Number 			  = TIMER_CHANNEL3;
-	t2_ch3_pwm.TIMER_CH_DirOut_Source = TIMER_CH_OutSrc_REF;
-	t2_ch3_pwm.TIMER_CH_DirOut_Mode   = TIMER_CH_OutMode_Output;
-	
-	/* Коэффициент заполнения 0.5 - 50 мкс */
-	MDR_TIMER2->CCR3  = 3600 - 1;
-	MDR_TIMER2->CCR31 = 7200 - 1;
-	
-	TIMER_ChnOutInit(MDR_TIMER2, &t2_ch3_pwm);
-	NVIC_EnableIRQ(TIMER2_IRQn);
-}
 
-
-void tim_1_init(void) {
-	/* Таймер 1 Гц: время импульса - ШИМ сигнал ПИД-регулятора */
-	
-	/* Разрешение тактирования TIM1 */
-	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_TIMER1;
-	
-	TIMER_DeInit(MDR_TIMER1);
-	
-	/* Установка TIM_CLOCK. Тактовая частота TIM2 = HCLK = 72 МГц, предделитель 128 */
-	TIMER_BRGInit(MDR_TIMER1, TIMER_HCLKdiv128); 
-	
-	/* Настройка счетчика */
-	TIMER_CntInitTypeDef t1_cnt;
-	t1_cnt.TIMER_Prescaler 				= 10 - 1;	/* Частота с предделителем = 72 МГц / 128 / 10 = 56250 Гц*/	
-	t1_cnt.TIMER_CounterMode 			= TIMER_CntMode_ClkFixedDir;
-	t1_cnt.TIMER_CounterDirection = TIMER_CntDir_Up;
-	TIMER_CntInit(MDR_TIMER1, &t1_cnt);
-	
-	/* Основание счета, на частоте 1 Гц переполнение через 500 мс (время импульса) */
-  MDR_TIMER1->ARR = 28125 - 1;
-	NVIC_EnableIRQ(TIMER1_IRQn);
-}
-
-
-void set_pe2_as_pid_ctrl(void) {
+/* PE2 вывод ШИМ */
+void port_e_init(void) {
 	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_PORTE;
-	
 	/* PE2 - TIM2 CH3 PWM */
 	PORT_InitTypeDef pe2;
 	pe2.PORT_Pin 	 = PORT_Pin_2;
 	pe2.PORT_OE 	 = PORT_OE_OUT;
 	pe2.PORT_MODE  = PORT_MODE_DIGITAL;
-	pe2.PORT_FUNC  = PORT_FUNC_ALTER;
 	pe2.PORT_SPEED = PORT_SPEED_FAST; 	 	/* should be <= 50 ns */
 	PORT_Init(MDR_PORTE, &pe2);
 }
 
+
+/* 2-й таймер 3-й канал: ШИМ 10 КГц, настраиваемый коэффициент заполнения */
+void tim_2_init(void) {	
+	TIMER_DeInit(MDR_TIMER2);
+	/* Разрешение тактирования TIM2 */
+	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_TIMER2;
+  /* Настройка источника тактирования TIM2 */
+	/* HCLK без предделения */
+	MDR_RST_CLK->TIM_CLOCK |= (RST_CLK_TIM_CLOCK_TIM_BRG_HCLK << RST_CLK_TIM_CLOCK_TIM2_BRG_Pos);
+	/* Разрешение тактирования TIM2 */
+	MDR_RST_CLK->TIM_CLOCK |= RST_CLK_TIM_CLOCK_TIM2_CLK_EN;
+	
+	/* Обнуление счетчика */	
+	MDR_TIMER2->CNT = 0;
+	/* Без предделения */
+	MDR_TIMER2->PSG = 0;
+	/* Основание счета */
+  MDR_TIMER2->ARR = 8000 - 1;  					/* 100 мкс */
+	
+	/* Направление счета - вверх от 0 до ARR */
+	MDR_TIMER2->CNTRL &= ~(1 << TIMER_CNTRL_DIR_Pos); 
+	MDR_TIMER2->CNTRL &= ~(0x3 << TIMER_CNTRL_CNT_MODE_Pos);
+	
+	/* Первый регистр сравнения */
+	MDR_TIMER2->CCR3  = 4000 - 1;         /* 50 мкс, коэффициент заполнения 0.5 */
+  /* Второй регистр сравнения = ARR */
+  MDR_TIMER2->CCR31 = 8000 - 1;         /* 100 мкс */
+	
+	/* Настройка канала */
+	/* Без предделения */
+	MDR_TIMER2->CH3_CNTRL &= ~(0x3 << TIMER_CH_CNTRL_CHPSC_Pos); 
+	/* Режим работы - ШИМ */
+	MDR_TIMER2->CH3_CNTRL &= ~(1 << TIMER_CH_CNTRL_CAP_NPWM_Pos);
+	/* Формат выработки сигнала REF - переключение REF если CNT == CCR или CNT == CRR1 */
+	MDR_TIMER2->CH3_CNTRL |= (TIMER_CH_CNTRL_OCCM_SW_REF_CNT_CCR_OR_CNT_CCR1 << TIMER_CH_CNTRL_OCCM_Pos);
+	/* Прямой канал всегда работает на выход */
+	MDR_TIMER2->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELOE_OUT_EN << TIMER_CH_CNTRL1_SELOE_Pos);
+	/* На выход подается REF */
+ 	MDR_TIMER2->CH3_CNTRL1 |= (TIMER_CH_CNTRL1_SELO_OUT_REF << TIMER_CH_CNTRL1_SELO_Pos);
+	/* Разрешение CRR1 */
+	MDR_TIMER2->CH3_CNTRL2 |= TIMER_CH_CNTRL2_CCR1_EN;
+
+}
+
+/* Таймер 1 Гц: время импульса - ШИМ сигнал ПИД-регулятора */
+void tim_1_init(void) {
+	TIMER_DeInit(MDR_TIMER1);
+	/* Разрешение тактирования TIM1 */
+	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_TIMER1;
+	/* Настройка источника тактирования TIM1 */
+	/* HCLK c предделением на 128 */
+	MDR_RST_CLK->TIM_CLOCK |= (RST_CLK_TIM_CLOCK_TIM_BRG_HCLK_DIV_128 << RST_CLK_TIM_CLOCK_TIM1_BRG_Pos);
+	/* Разрешение тактирования TIM1 */
+	MDR_RST_CLK->TIM_CLOCK |= RST_CLK_TIM_CLOCK_TIM1_CLK_EN;
+	
+	/* Обнуление счетчика */	
+	MDR_TIMER1->CNT = 0;
+	/* Частота с предделителем = 80 МГц / 128 / 10 = 62500 Гц */	
+	MDR_TIMER1->PSG = 10 - 1;
+	/* Основание счета на частоте 62500 Гц переполнение через 500 мс (время импульса) */
+  MDR_TIMER1->ARR = 31250 - 1; 
+	
+	/* Направление счета - вверх от 0 до ARR */
+	MDR_TIMER1->CNTRL &= ~(1 << TIMER_CNTRL_DIR_Pos); 
+	MDR_TIMER1->CNTRL &= ~(0x3 << TIMER_CNTRL_CNT_MODE_Pos);
+	
+	/* Прерывание по переполнению */
+	MDR_TIMER1->IE |= TIMER_STATUS_CNT_ARR;
+	NVIC_EnableIRQ(TIMER1_IRQn);
+}
+
+
+void set_pe2_as_pid_ctrl(void) {
+	MDR_PORTE->FUNC |= (PORT_FUNC_MODE_ALT << PORT_FUNC_MODE2_Pos);
+}
+
 void set_pe2_0(void) {
-	PORT_InitTypeDef pe2;
-	pe2.PORT_Pin 	 = PORT_Pin_2;
-	pe2.PORT_OE 	 = PORT_OE_OUT;
-	pe2.PORT_MODE  = PORT_MODE_DIGITAL;
-	pe2.PORT_FUNC  = PORT_FUNC_PORT;
-	pe2.PORT_SPEED = PORT_SPEED_FAST; 	 	/* should be <= 50 ns */
-	PORT_Init(MDR_PORTE, &pe2);
-	PORT_WriteBit(MDR_PORTE, PORT_Pin_2, Bit_RESET);
+	MDR_PORTE->FUNC &= ~PORT_FUNC_MODE2_Msk;
 }
 
 
@@ -144,12 +145,19 @@ uint8_t PID(uint32_t err, uint32_t curr_t) {
 
 
 void PID_cmd(FunctionalState st) {
-	TIMER_Cmd(MDR_TIMER2, st);
+	if(st == ENABLE) {
+		MDR_TIMER2->CNTRL |= TIMER_CNTRL_CNT_EN;
+	}
+	else {
+		MDR_TIMER2->CNTRL &= ~ TIMER_CNTRL_CNT_EN;
+	}
 }
 
 
 void carrier_init(void) {
 	tim_1_init();
+	tim_2_init();
+	port_e_init();
 }
 
 
@@ -162,26 +170,28 @@ void carrier_cmd(FunctionalState st) {
  * Запись текущей температуры в память раз в секунду
  */
 void Timer1_IRQHandler(void) {
+	MDR_TIMER1->STATUS = 0;
 	/* Если ПИД регулятор выключен */
 	if(PID_st == DISABLE) {
 		set_pe2_as_pid_ctrl();
+		
 		PID_st = ENABLE;
-		
-		/* Текущая и требуемая к установке температура измеряются в единицах 0.02 гЦ */
-		curr_t = adc_t1_24()/3355; 
-		err 	 = target_t - curr_t;
-		
-		/* При допущении, что ПИД регулятор выдает значения от 0 до 32 
-		 * и что значение регистра сравнения мб от 0 до 7200 (основание счета таймера)
-		 */
-		MDR_TIMER2->CCR3 = ((uint16_t)PID(err, curr_t) * 225) - 1;
-		
-		/* Запись текущей температуры образца и нагревателя-охладителя в память */
-		uint32_t t_sample = adc_t2_24();
-		f_wr_t(t_sample, w_addr, MAIN);
-		w_addr += sizeof(uint32_t);
-		f_wr_t(curr_t, w_addr, MAIN);
-		w_addr += sizeof(uint32_t);
+////		
+////		/* Текущая и требуемая к установке температура измеряются в единицах 0.02 гЦ */
+////		curr_t = adc_t1()/3355; 
+////		err 	 = target_t - curr_t;
+////		
+////		/* При допущении, что ПИД регулятор выдает значения от 0 до 32 
+////		 * и что значение регистра сравнения мб от 0 до 8000 (основание счета таймера)
+////		 */
+////		MDR_TIMER2->CCR3 = ((uint16_t)PID(err, curr_t) * 250) - 1;
+////		
+////		/* Запись текущей температуры образца и нагревателя-охладителя в память */
+////		uint32_t t_sample = adc_t2();
+////		f_wr_t(t_sample, w_addr, MAIN);
+////		w_addr += sizeof(uint32_t);
+////		f_wr_t(curr_t, w_addr, MAIN);
+////		w_addr += sizeof(uint32_t);
 	}
 	/* Если ПИД регулятор включен */
 	else {

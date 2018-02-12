@@ -5,6 +5,8 @@
 #include "MDR32F9Qx_port.h"             // Milandr::Drivers:PORT
 #include "MDR32F9Qx_ssp.h"              // Milandr::Drivers:SSP
 #include "util.h"
+#include "MDR32F9Qx_timer.h"            // Milandr::Drivers:TIMER
+
 
 /* Адреса чтения и записи во флеш */
 uint32_t w_addr;
@@ -12,174 +14,308 @@ uint32_t r_addr;
 
 void spi_init(void) {
 	/* Настройка портов F и D на режим работы по SPI */
-	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_PORTD | RST_CLK_PER_CLOCK_PCLK_EN_PORTF;
-	PORT_InitTypeDef pf;
-  PORT_DeInit(MDR_PORTF);
-	/* Configure SSP1 pins: FSS, CLK, RXD, TXD */
-  /* Configure PORTF pins 0, 1, 2, 3 */
-	pf.PORT_Pin   = MISO1;
-  pf.PORT_OE    = PORT_OE_IN;
-  PORT_Init(MDR_PORTF, &pf);
-  pf.PORT_Pin   = (MOSI1 | SCK1 | nCS1);
-  pf.PORT_OE    = PORT_OE_OUT;
-	pf.PORT_FUNC  = PORT_FUNC_ALTER;
-  pf.PORT_MODE  = PORT_MODE_DIGITAL;
-  pf.PORT_SPEED = PORT_SPEED_FAST;
-  PORT_Init(MDR_PORTF, &pf);
+	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_PORTF; //| RST_CLK_PER_CLOCK_PCLK_EN_PORTD;
 	
-	PORT_InitTypeDef pd;
-	PORT_DeInit(MDR_PORTD);
-	/* Configure SSP2 pins: FSS, CLK, RXD, TXD */
-  /* Configure PORTD pins 2, 3, 5, 6 */
-  pd.PORT_Pin   = MISO2;
-	pd.PORT_OE    = PORT_OE_IN;
-  PORT_Init(MDR_PORTD, &pd);
-	pd.PORT_Pin   = (MOSI2 | SCK2 | nCS2);
-  pd.PORT_OE    = PORT_OE_OUT;
-  pd.PORT_FUNC  = PORT_FUNC_ALTER;
-  pd.PORT_MODE  = PORT_MODE_DIGITAL;
-  pd.PORT_SPEED = PORT_SPEED_FAST;
-  PORT_Init(MDR_PORTD, &pd);
+	/************** PORT F SPI 1 **************/
+	PORT_DeInit(MDR_PORTF);
+//	/* PF0 TXD(MOSI1), PF1 CLK(SCK1) */
+//	PORT_InitTypeDef pf01;
+//  pf01.PORT_Pin   = MOSI1 | SCK1;  
+//  pf01.PORT_OE    = PORT_OE_OUT;
+//	pf01.PORT_MODE  = PORT_MODE_DIGITAL;
+//	pf01.PORT_FUNC  = PORT_FUNC_ALTER;
+//  pf01.PORT_SPEED = PORT_SPEED_FAST;
+//  PORT_Init(MDR_PORTF, &pf01);	
+//	
+	/* PF2 FSS(nCS1) */
+	PORT_InitTypeDef pf2;
+	pf2.PORT_Pin   = nCS1;
+  pf2.PORT_OE    = PORT_OE_OUT;
+	pf2.PORT_MODE  = PORT_MODE_DIGITAL;
+	pf2.PORT_FUNC  = PORT_FUNC_PORT;
+  pf2.PORT_SPEED = PORT_SPEED_FAST;
+  PORT_Init(MDR_PORTF, &pf2);
+	
+//	/* PF3 RXD(MISO1) */
+//	PORT_InitTypeDef pf3;
+//	pf3.PORT_Pin   = MISO1;
+//  pf3.PORT_OE    = PORT_OE_IN;
+//	pf3.PORT_MODE  = PORT_MODE_DIGITAL;
+//	pf3.PORT_FUNC  = PORT_FUNC_ALTER;
+//  pf3.PORT_SPEED = PORT_SPEED_FAST;
+//  PORT_Init(MDR_PORTF, &pf3);
+	
+//	/************** PORT D SPI 2 **************/
+//	PORT_DeInit(MDR_PORTD);
+//	/* PD2 RXD(MISO2) */
+//	PORT_InitTypeDef pd2;
+//  pd2.PORT_Pin   = MISO2;									
+//	pd2.PORT_OE    = PORT_OE_IN;
+//	pd2.PORT_MODE  = PORT_MODE_DIGITAL;
+//	pd2.PORT_FUNC  = PORT_FUNC_ALTER;
+//  pd2.PORT_SPEED = PORT_SPEED_FAST;
+//  PORT_Init(MDR_PORTD, &pd2);
+//	
+//	/* PD3 FSS(nCS2) */
+//	PORT_InitTypeDef pd3;
+//	pd3.PORT_Pin   = nCS2;  
+//  pd3.PORT_OE    = PORT_OE_OUT;
+//  pd3.PORT_FUNC  = PORT_FUNC_PORT;
+//  pd3.PORT_MODE  = PORT_MODE_DIGITAL;
+//  pd3.PORT_SPEED = PORT_SPEED_FAST;
+//  PORT_Init(MDR_PORTD, &pd3);
+//	
+//	/* PD5 CLK(SCK2), PD6 TXD(MOSI2) */
+//	PORT_InitTypeDef pd56;
+//	pd56.PORT_Pin   = SCK2 | MOSI2;  
+//  pd56.PORT_OE    = PORT_OE_OUT;
+//  pd56.PORT_FUNC  = PORT_FUNC_ALTER;
+//  pd56.PORT_MODE  = PORT_MODE_DIGITAL;
+//  pd56.PORT_SPEED = PORT_SPEED_FAST;
+//  PORT_Init(MDR_PORTD, &pd56);
+//	
+	ncs1_h();
+//  ncs2_h();
+//	
+//	/* Настройка SPI */
+//	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_SPI1 | RST_CLK_PER_CLOCK_PCLK_EN_SPI2;
+//	/* Выбор источника сигнала для SSP_CLK = HCLK = 80 МГц*/
+//  SSP_BRGInit(MDR_SSP1, SSP_HCLKdiv1);
+//  SSP_BRGInit(MDR_SSP2, SSP_HCLKdiv1);
+// 
+//	SSP_InitTypeDef spi;
+//  /* Частота тактового сигнала SPI = F_SSPCLK / (CPSDVR * (1  + SCR)), 
+//	   где CPSDVR – четное число в диапазоне от 2 до 254, 
+//		 а SCR – число от 0 до 255 */  
+//		 
+//	/* Делитель для SSP_CLK = 40, SSP_CLK = 2 МГц */
+//  spi.SSP_SCR  			 = 0;
+//  spi.SSP_CPSDVSR 	 = 40;
+//  spi.SSP_Mode 			 = SSP_ModeMaster;
+//  spi.SSP_WordLength = SSP_WordLength8b;
+//  spi.SSP_SPH 			 = SSP_SPH_1Edge;
+//  spi.SSP_SPO 			 = SSP_SPO_Low;
+//  spi.SSP_FRF 			 = SSP_FRF_SPI_Motorola;
+// 
+//  SSP_Init(MDR_SSP1, &spi);
+//	SSP_Init(MDR_SSP2, &spi);
+//	
+//	/* Enable SSP1 */
+//  SSP_Cmd(MDR_SSP1, ENABLE);
+//  /* Enable SSP2 */
+//  SSP_Cmd(MDR_SSP2, ENABLE);
+}
 
-	/* Настройка SPI */
-	MDR_RST_CLK->PER_CLOCK |= RST_CLK_PER_CLOCK_PCLK_EN_SPI1 | RST_CLK_PER_CLOCK_PCLK_EN_SPI2;
-	/* Выбор источника сигнала для SSP_CLK = HCLK = 72 МГц*/
-  SSP_BRGInit(MDR_SSP1, SSP_HCLKdiv1);
-  SSP_BRGInit(MDR_SSP2, SSP_HCLKdiv1);
- 
-	SSP_InitTypeDef spi1;
-	/* Делитель для SSP_CLK = 36, SSP_CLK = 2 МГц */
-  spi1.SSP_SCR  = 0;
-  spi1.SSP_CPSDVSR = 36;
-  spi1.SSP_Mode = SSP_ModeMaster;
-  spi1.SSP_WordLength = SSP_WordLength8b;
-  spi1.SSP_SPH = SSP_SPH_1Edge;
-  spi1.SSP_SPO = SSP_SPO_Low;
-  spi1.SSP_FRF = SSP_FRF_SPI_Motorola;
- 
-  SSP_Init(MDR_SSP1, &spi1);
-	SSP_Init(MDR_SSP2, &spi1);
-	
-	/* Enable SSP1 */
-  SSP_Cmd(MDR_SSP1, ENABLE);
-  /* Enable SSP2 */
-  SSP_Cmd(MDR_SSP2, ENABLE);
+
+inline void ncs1_l(void) {
+	MDR_PORTF->RXTX &= ~nCS1;
+}
+
+
+inline void ncs1_h(void) {
+	MDR_PORTF->RXTX |= nCS1;
 }
 
 
 uint8_t spi1_tsf(uint8_t data) {
 	/* Пока буфер передачи не пуст */	
-	while(SSP_GetFlagStatus(MDR_SSP1, SSP_FLAG_TFE) == RESET);
-	SSP_SendData(MDR_SSP1, data);
+	while((MDR_SSP1->SR & SSP_FLAG_TFE) == 0);
+	MDR_SSP1->DR = data;
 	/* Пока буфер приема пуст */
-	while(SSP_GetFlagStatus(MDR_SSP1, SSP_FLAG_RNE) == RESET);
-	return (uint8_t)SSP_ReceiveData(MDR_SSP1);
+	while((MDR_SSP1->SR & SSP_FLAG_RNE) == 0);
+	return (uint8_t)MDR_SSP1->DR;
 } 
 
 
 void spi1_wr_byte(uint8_t data) {
-	 spi1_tsf(data);
+	spi1_tsf(data);
 }
 
 
 void spi1_wr_buf(uint8_t *buf, uint8_t len) {
 	for(uint8_t i = 0; i < len; i++) {
-		spi1_wr_byte(*buf++);
+		spi1_tsf(*buf++);
 	}
 }
 
 
 uint8_t spi1_rd_byte(void) {
-	return spi1_tsf(0xFF); 
+	return spi1_tsf(0xFF);
 }
 
 
-uint8_t spi2_tsf(uint8_t byte) {
-	/* Wait for SPI2 Tx buffer empty */	
-	while(SSP_GetFlagStatus(MDR_SSP2, SSP_FLAG_TFE) == RESET);
-	SSP_SendData(MDR_SSP2, byte);
-	/* Read SPI2 received data */
-	while(SSP_GetFlagStatus(MDR_SSP2, SSP_FLAG_RNE) == RESET);
-	return (uint8_t)SSP_ReceiveData(MDR_SSP2);
+inline void ncs2_l(void) {
+	MDR_PORTD->RXTX &= ~nCS2;
+}
+
+
+inline void ncs2_h(void) {
+	MDR_PORTD->RXTX |= nCS2;
+}
+
+
+uint8_t spi2_tsf(uint8_t data) {
+	/* Пока буфер передачи не пуст */	
+	while((MDR_SSP2->SR & SSP_FLAG_TFE) == 0);
+	MDR_SSP2->DR = data;
+	/* Пока буфер приема пуст */
+	while((MDR_SSP2->SR & SSP_FLAG_RNE) == 0);
+	return (uint8_t)MDR_SSP2->DR;
 } 
 
 
-void spi2_wr_byte(uint8_t byte) {
-	 spi2_tsf(byte);
+void spi2_wr_byte(uint8_t data) {
+	spi2_tsf(data);
 }
 
 
 void spi2_wr_buf(uint8_t *buf, uint8_t len) {
 	for(uint8_t i = 0; i < len; i++) {
-		spi2_wr_byte(*buf++);
+		spi2_tsf(*buf++);
 	}
 }
 
 
 uint8_t spi2_rd_byte(void) {
-	return spi2_tsf(0xFF); 
+	return spi2_tsf(0xFF);
+}
+
+
+void f_wr_en(uint8_t prom_code, FunctionalState st) {
+	uint8_t cmd = (st == ENABLE) ? WriteEnable : WriteDisable;
+	if(prom_code == MAIN) {
+		ncs1_l();
+		spi1_wr_byte(cmd);
+		ncs1_h();
+	}
+	else {
+		ncs2_l();
+		spi2_wr_byte(cmd);
+		ncs2_h();
+	}
+}
+
+
+void f_wr_byte(uint32_t addr, uint8_t data, uint8_t prom_code) {
+	uint8_t buf[PROGRAM_BYTE_BUF_LEN] = {ByteProgram, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr, data};
+	uint8_t *ptr = &buf[0];
+	if(addr <= 0x1FFFFF) {
+		if(prom_code == MAIN) {			
+			ncs1_l();
+			spi1_wr_buf(ptr, PROGRAM_BYTE_BUF_LEN);
+			ncs1_h();
+		}
+		else {
+			ncs2_l();
+			spi2_wr_buf(ptr, PROGRAM_BYTE_BUF_LEN);
+			ncs2_h();
+		}
+	}
+	delay_ms(1); /* >= 200 мкс */
+}
+
+
+void f_wr_buf(uint8_t *buf, uint8_t len, uint32_t addr, uint8_t prom_code) {
+	f_wr_en(prom_code, ENABLE);
+	delay_ms(1);
+	for(uint8_t i = 0; i < len; i++) {
+		f_wr_byte(addr++, *buf++, prom_code);
+	}
+	delay_ms(1);
+	f_wr_en(prom_code, DISABLE);
+}
+
+
+uint8_t f_rd_byte(uint32_t addr, uint8_t prom_code) {
+	uint8_t res = 0;
+	uint8_t buf[READ_BYTE_BUF_LEN] = {ReadArraySlow, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
+	uint8_t *ptr = &buf[0];
+	if(addr <= 0x1FFFFF) {
+		if(prom_code == MAIN) {
+			ncs1_l();
+			spi1_wr_buf(ptr, READ_BYTE_BUF_LEN);
+			res = spi1_rd_byte();
+			ncs1_h();
+		}
+		else {
+			ncs2_l();
+			spi2_wr_buf(ptr, READ_BYTE_BUF_LEN);
+			res = spi2_rd_byte();
+			ncs2_h();
+		}
+	}
+	return res;
 }
 
 
 uint16_t f_rd_id(uint8_t prom_code) {
 	uint16_t vID;
 	uint16_t dID;
+	f_wr_en(prom_code, ENABLE);
+	delay_ms(1);
 	if(prom_code == MAIN) {
+		ncs1_l();
 		spi1_wr_byte(ReadVendorAndDeviceID);
 		vID = ((uint16_t)spi1_rd_byte()) << 8;
 		dID = ((uint16_t)spi1_rd_byte());
+		ncs1_h();
 	}
 	else {
+		ncs2_l();
 		spi2_wr_byte(ReadVendorAndDeviceID);
 		vID = ((uint16_t)spi2_rd_byte()) << 8;
 		dID = ((uint16_t)spi2_rd_byte());
+		ncs2_h();
 	}
+	delay_ms(1);
+	f_wr_en(prom_code, DISABLE);
 	return (vID | dID);
 }
-
 
 
 void f_unprotect(uint8_t prom_code) {
 	uint32_t pck = ((uint32_t)UnprotectSector << 24);
 	uint8_t *ptr = (uint8_t *)&pck;
-	if(prom_code == MAIN) {
-		spi1_wr_byte(WriteEnable);
+	f_wr_en(prom_code, ENABLE);
+	delay_ms(1);
+	if(prom_code == MAIN) {		
+		ncs1_l();
 		for(uint32_t i = 0; i < NUMBER_OF_SECTORS; i++) {
 			pck &= 0xFF000000;
 			pck |= (i << 18);				
 			spi1_wr_buf(ptr, sizeof(uint32_t));
 		}
-		spi1_wr_byte(WriteDisable);
+		ncs1_h();
 	}
 	else {
-		spi2_wr_byte(WriteEnable);
-		pck = ((uint32_t)UnprotectSector << 24);
-		ptr = (uint8_t *)&pck;
+		ncs2_l();
 		for(uint32_t i = 0; i < NUMBER_OF_SECTORS; i++) {
 			pck &= 0xFF000000;
 			pck |= (i << 18);
 			spi2_wr_buf(ptr, sizeof(uint32_t));
 		}
-		spi2_wr_byte(WriteDisable);
+		ncs2_h();
 	}
+	delay_ms(1);
+	f_wr_en(prom_code, DISABLE);
 }
 
 
 void f_erase(uint8_t prom_code) {
-	if(prom_code == MAIN) {
-		spi1_wr_byte(WriteEnable);
+	f_wr_en(prom_code, ENABLE);
+	delay_ms(1);
+	if(prom_code == MAIN) {	
+		ncs1_l();
 		spi1_wr_byte(ChipErase);
-		sys_tim_LSI();
-		delay_ticks(80000); /* 2 c */
-		spi1_wr_byte(WriteDisable);
+		ncs1_h();
 	}
-	else {	
-		spi2_wr_byte(WriteEnable);
+	else {
+		ncs2_l();
 		spi2_wr_byte(ChipErase);
-		sys_tim_LSI();
-		delay_ticks(80000); /* 2 c */
-		spi2_wr_byte(WriteDisable);
+		ncs2_h();
 	}
+	delay_ms(2000); /* 2 c */
+	f_wr_en(prom_code, DISABLE);
 }
 
 
@@ -194,42 +330,6 @@ void f_init(uint8_t prom_code) {
 }
 
 
-/* Коды основного/резервного ПЗУ */
-#define MAIN			0
-#define RESERVE		1
-
-/* Длины пакетов команд записи и чтения байта */
-#define PROGRAM_BYTE_BUF_LEN			 	5
-#define READ_BYTE_BUF_LEN 				  4
-
-
-void f_wr_byte(uint32_t addr, uint8_t data, uint8_t prom_code) {
-	uint8_t buf[PROGRAM_BYTE_BUF_LEN] = {ByteProgram, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr, data};
-	uint8_t *ptr = &buf[0];
-	if(addr <= 0x1FFFFF) {
-		if(prom_code == MAIN) {
-			spi1_wr_byte(WriteEnable);
-			spi1_wr_buf(ptr, PROGRAM_BYTE_BUF_LEN);
-			spi1_wr_byte(WriteDisable);
-		}
-		else {
-			spi2_wr_byte(WriteEnable);
-			spi2_wr_buf(ptr, PROGRAM_BYTE_BUF_LEN);
-			spi2_wr_byte(WriteDisable);
-		}
-	}
-	sys_tim_HCLK();
-	delay_ticks(14400); /* 200 мкс */
-}
-
-
-void f_wr_buf(uint8_t *buf, uint8_t len, uint32_t addr, uint8_t prom_code) {
-	for(uint8_t i = 0; i < len; i++) {
-		f_wr_byte(addr++, *buf++, prom_code);
-	}
-}
-
-
 void f_wr_t(uint32_t t, uint32_t addr, uint8_t prom_code) {
 	uint32_t tH = Hamming(t);
 	uint8_t *ptr = (uint8_t *)&tH;
@@ -237,32 +337,14 @@ void f_wr_t(uint32_t t, uint32_t addr, uint8_t prom_code) {
 }
 
 
-uint8_t f_rd_byte(uint32_t addr, uint8_t prom_code) {
-	uint8_t res = 0;
-	uint8_t buf[READ_BYTE_BUF_LEN] = {ReadArraySlow, (uint8_t)(addr >> 16), (uint8_t)(addr >> 8), (uint8_t)addr};
-	uint8_t *ptr = &buf[0];
-	if(addr <= 0x1FFFFF) {
-		if(prom_code == MAIN) {
-			spi1_wr_byte(WriteEnable);
-			spi1_wr_buf(ptr, READ_BYTE_BUF_LEN);
-			res = spi1_rd_byte();
-			spi1_wr_byte(WriteDisable);
-		}
-		else {
-			spi2_wr_byte(WriteEnable);
-			spi2_wr_buf(ptr, READ_BYTE_BUF_LEN);
-			res = spi2_rd_byte();
-			spi2_wr_byte(WriteDisable);
-		}
-	}
-	return res;
-}
-
-
 uint32_t f_rd_tH(uint32_t addr, uint8_t prom_code) {
 	uint32_t res = 0;
+	f_wr_en(prom_code, ENABLE);
+	delay_ms(1);
 	for(uint8_t i = 0; i < sizeof(uint32_t); i++) {
 		res |= (f_rd_byte(addr++, prom_code) << ((2 - i) * 8));
 	}
+	delay_ms(1);
+	f_wr_en(prom_code, DISABLE);
 	return res;
 }
